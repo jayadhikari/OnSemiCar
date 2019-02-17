@@ -26,12 +26,14 @@ import java.net.UnknownHostException;
 
 public class MainActivity extends AppCompatActivity
 {
-    Button right_btn_instance,left_btn_instance,fwd_btn_instance,back_btn_instance,wifi_btn_instance, speed_btn_instance, car_Mode_btn_Instance;
+    Button right_btn_instance,left_btn_instance,fwd_btn_instance,back_btn_instance,wifi_btn_instance, speed_btn_instance, car_Mode_btn_Instance, safety_Btn_instance;
 
     Boolean fwd_state,bck_state,left_state,wifi_state,right_state,wifi_timeout;
 
     int speed_level = 1;
     int car_mode = 0;
+    int safety_mode = 0;
+
 
     static WifiManager wifiManager;
     Context context;
@@ -61,6 +63,7 @@ public class MainActivity extends AppCompatActivity
         back_btn_instance = (Button) findViewById(R.id.bck_btn);
         speed_btn_instance = (Button) findViewById(R.id.spd_btn);
         car_Mode_btn_Instance = (Button) findViewById(R.id.car_mode);
+        safety_Btn_instance = (Button) findViewById(R.id.safetyBtn);
 
     }
 
@@ -198,6 +201,30 @@ public class MainActivity extends AppCompatActivity
         a.run();
     }
 
+    public void safetyFn(View v)
+    {
+        safety_mode = safety_mode + 1;
+        if(safety_mode > 1 )
+        {
+            safety_mode = 0;
+        }
+
+        Client a=new Client();
+        buf=null;
+
+        if(safety_mode == 0) {
+            safety_Btn_instance.setText("SAFETY ON");
+            safety_Btn_instance.setBackgroundColor(Color.GREEN);
+            buf = ("safetyEnable").getBytes();
+        }
+        else if(safety_mode == 1) {
+            safety_Btn_instance.setText("SAFETY OFF");
+            safety_Btn_instance.setBackgroundColor(Color.RED);
+            buf = ("safetyDisable").getBytes();
+        }
+
+        a.run();
+    }
     public void carMode(View v)
     {
         car_mode = car_mode + 1;
@@ -214,7 +241,7 @@ public class MainActivity extends AppCompatActivity
             car_Mode_btn_Instance.setBackgroundColor(Color.GRAY);
             buf = ("manual").getBytes();
         }
-        else if(speed_level == 1) {
+        else if(car_mode == 1) {
             car_Mode_btn_Instance.setText("AUTO");
             car_Mode_btn_Instance.setBackgroundColor(Color.GREEN);
             buf = ("automatic").getBytes();

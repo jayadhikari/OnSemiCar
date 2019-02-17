@@ -14,10 +14,12 @@
         android:id="@+id/wifiOnOff"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
         android:background="@android:color/darker_gray"
         android:onClick="wifi_connect"
-        android:text="connect" />
+        android:text="connect"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
 
     <Button
         android:id="@+id/fwd_btn"
@@ -74,24 +76,35 @@
         android:id="@+id/spd_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
         android:background="@android:color/darker_gray"
         android:onClick="speed"
         android:text="speed low"
-        android:layout_below="@+id/wifiOnOff"
-        android:layout_alignLeft="@+id/wifiOnOff"
-        android:layout_alignStart="@+id/wifiOnOff" />
+        android:layout_alignBottom="@+id/safetyBtn"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="7dp" />
 
     <Button
         android:id="@+id/car_mode"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/spd_btn"
-        android:layout_alignStart="@+id/spd_btn"
-        android:layout_below="@+id/spd_btn"
-        android:layout_marginTop="17dp"
         android:background="@android:color/darker_gray"
         android:onClick="carMode"
-        android:text="MANUAL" />
+        android:text="MANUAL"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
+
+    <Button
+        android:id="@+id/safetyBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/car_mode"
+        android:layout_marginTop="33dp"
+        android:background="@android:color/holo_green_light"
+        android:onClick="safetyFn"
+        android:text="Safety ON" />
 
 </RelativeLayout>
