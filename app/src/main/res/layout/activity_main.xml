@@ -17,7 +17,7 @@
         android:layout_centerHorizontal="true"
         android:background="@android:color/darker_gray"
         android:onClick="wifi_connect"
-        android:text="WiFi ON/OFF" />
+        android:text="connect" />
 
     <Button
         android:id="@+id/fwd_btn"
@@ -74,12 +74,24 @@
         android:id="@+id/spd_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignEnd="@+id/wifiOnOff"
-        android:layout_alignRight="@+id/wifiOnOff"
-        android:layout_below="@+id/wifiOnOff"
-        android:layout_marginTop="35dp"
+        android:layout_marginTop="18dp"
         android:background="@android:color/darker_gray"
         android:onClick="speed"
-        android:text="speed low" />
+        android:text="speed low"
+        android:layout_below="@+id/wifiOnOff"
+        android:layout_alignLeft="@+id/wifiOnOff"
+        android:layout_alignStart="@+id/wifiOnOff" />
+
+    <Button
+        android:id="@+id/car_mode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/spd_btn"
+        android:layout_alignStart="@+id/spd_btn"
+        android:layout_below="@+id/spd_btn"
+        android:layout_marginTop="17dp"
+        android:background="@android:color/darker_gray"
+        android:onClick="carMode"
+        android:text="MANUAL" />
 
 </RelativeLayout>

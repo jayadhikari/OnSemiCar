@@ -3,13 +3,18 @@ package com.app.esp.esp_app;
 import android.content.Context;
 import android.graphics.Color;
 import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.CountDownTimer;
 import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.format.Formatter;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.BounceInterpolator;
 import android.widget.Button;
+import android.widget.NumberPicker;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -21,10 +26,13 @@ import java.net.UnknownHostException;
 
 public class MainActivity extends AppCompatActivity
 {
-    Button right_btn_instance,left_btn_instance,fwd_btn_instance,back_btn_instance,wifi_btn_instance, speed_btn_instance;
+    Button right_btn_instance,left_btn_instance,fwd_btn_instance,back_btn_instance,wifi_btn_instance, speed_btn_instance, car_Mode_btn_Instance;
 
-    Boolean fwd_state,bck_state,left_state,wifi_state,right_state;
+    Boolean fwd_state,bck_state,left_state,wifi_state,right_state,wifi_timeout;
+
     int speed_level = 1;
+    int car_mode = 0;
+
     static WifiManager wifiManager;
     Context context;
     WifiConfiguration conf;
@@ -32,12 +40,15 @@ public class MainActivity extends AppCompatActivity
     public static String networkPass="onsemi@123";
     byte[] buf = new byte[1024];//used to sending information to esp is a form of byte
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         fwd_state=bck_state=left_state=wifi_state=right_state=true;
+
         context=this;
 		
 		// this is for thread policy the AOS doesn't allow to transfer data using wifi module so we take the permission
@@ -49,16 +60,19 @@ public class MainActivity extends AppCompatActivity
         fwd_btn_instance = (Button) findViewById(R.id.fwd_btn);
         back_btn_instance = (Button) findViewById(R.id.bck_btn);
         speed_btn_instance = (Button) findViewById(R.id.spd_btn);
+        car_Mode_btn_Instance = (Button) findViewById(R.id.car_mode);
 
     }
 
-	// conected with a wifi button.. it connect to esp module when it is pressed
-	//remember the nework ssid and pasword needs to be the same as given here
-	//other it won't connect
+    public static void turnOnOffWifi(Context context, boolean isTurnToOn)
+    {
+        wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        wifiManager.setWifiEnabled(isTurnToOn);
+    }
+
     public void wifi_connect(View v)
     {
-        wifiManager = (WifiManager) context
-                .getSystemService(Context.WIFI_SERVICE);
+        wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
 
         wifi_btn_instance = (Button) findViewById(R.id.wifiOnOff);
 
@@ -66,12 +80,12 @@ public class MainActivity extends AppCompatActivity
         {
 
             turnOnOffWifi(context, wifi_state);
-            wifi_state=false;
-            Toast.makeText(getApplicationContext(), "connecting to demo car...", Toast.LENGTH_SHORT).show();
+
+            //Toast.makeText(getApplicationContext(), "connecting to demo car...", Toast.LENGTH_SHORT).show();
 
 			//wifi configuration .. all the code below is to explain the wifi configuration of which type the wifi is
 			//if it is a WPA-PSK protocol then it would work
-			
+            Toast.makeText(getApplicationContext(), "connecting car ...", Toast.LENGTH_SHORT).show();
             conf = new WifiConfiguration();
             conf.SSID = "\"" + networkSSID + "\"";
             conf.preSharedKey = "\"" + networkPass + "\"";
@@ -82,11 +96,23 @@ public class MainActivity extends AppCompatActivity
             conf.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.TKIP);
             conf.allowedPairwiseCiphers.set(WifiConfiguration.PairwiseCipher.CCMP);
             conf.allowedProtocols.set(WifiConfiguration.Protocol.RSN);
+
             int netid= wifiManager.addNetwork(conf);
+
             wifiManager.disconnect();
             wifiManager.enableNetwork(netid, true);
             wifiManager.reconnect();
-            wifi_btn_instance.setBackgroundColor(Color.GREEN);
+
+            wifi_state = false;
+            //getWifiInfo(context);
+            //wifi_timeout = false;
+            //while(wifi_state != false && wifi_timeout != true);//wait for app to connect to car
+
+            //if(wifi_state == false)
+            {
+                wifi_btn_instance.setBackgroundColor(Color.GREEN);
+                wifi_btn_instance.setText("DISCONNECT");
+            }
 
 
         }
@@ -96,8 +122,52 @@ public class MainActivity extends AppCompatActivity
             wifi_state = true;
             Toast.makeText(getApplicationContext(), "disconnecting car ...", Toast.LENGTH_SHORT).show();
             wifi_btn_instance.setBackgroundColor(Color.GRAY);
+            wifi_btn_instance.setText("CONNECT");
         }
     }
+    public void getWifiInfo(Context context)
+    {
+
+        wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+
+        new CountDownTimer(30000, 1000)
+        {
+
+            public void onTick(long millisUntilFinished)
+            {
+                if(wifiManager.isWifiEnabled())
+                {
+                    WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+
+                    if (String.valueOf(wifiInfo.getSupplicantState()).equals("COMPLETED"))
+                    {
+                        String ip_addr = Formatter.formatIpAddress(wifiInfo.getIpAddress());
+                        String SSID = wifiInfo.getSSID();
+
+                        Log.i("IP = ", ip_addr);
+
+
+                        Toast.makeText(getApplicationContext(), "connected to " + SSID + "", Toast.LENGTH_SHORT).show();
+                        if(SSID.equals("onsemicar"))
+                        {
+                            wifi_state = false;
+                            cancel();//cancel countdown timer
+                        }
+                    }
+
+                }
+            }
+            public void onFinish()
+            {
+                wifi_timeout = true;
+                Toast.makeText(getApplicationContext(), "Make Sure Car is ON..!", Toast.LENGTH_SHORT).show();
+                cancel();//cancel countdown timer
+            }
+        }.start();
+
+    }
+
+
     public void speed(View v)
     {
         speed_level = speed_level+1;
@@ -123,6 +193,31 @@ public class MainActivity extends AppCompatActivity
             speed_btn_instance.setText("SPEED HI");
             speed_btn_instance.setBackgroundColor(Color.RED);
             buf = ("speedH").getBytes();
+        }
+
+        a.run();
+    }
+
+    public void carMode(View v)
+    {
+        car_mode = car_mode + 1;
+        if(car_mode > 1 )
+        {
+            car_mode = 0;
+        }
+
+        Client a=new Client();
+        buf=null;
+
+        if(car_mode == 0) {
+            car_Mode_btn_Instance.setText("MANUAL");
+            car_Mode_btn_Instance.setBackgroundColor(Color.GRAY);
+            buf = ("manual").getBytes();
+        }
+        else if(speed_level == 1) {
+            car_Mode_btn_Instance.setText("AUTO");
+            car_Mode_btn_Instance.setBackgroundColor(Color.GREEN);
+            buf = ("automatic").getBytes();
         }
 
         a.run();
@@ -197,22 +292,22 @@ public class MainActivity extends AppCompatActivity
 // when LED 3 BUTTON is pressed
     public void left(View v)
     {
-        if(left_state)
-        {
+       // if(left_state)
+      //  {
             left_btn_instance.setBackgroundColor(Color.GREEN);
             right_btn_instance.setBackgroundColor(Color.GRAY);
             back_btn_instance.setBackgroundColor(Color.GRAY);
             fwd_btn_instance.setBackgroundColor(Color.GRAY);
             bck_state = fwd_state = right_state = true;//when a button is pressed previous buttons function is overwritten, so enable these buttons again
 
-            left_state=false;
+         //   left_state = false;
             Client a=new Client();
             buf=null;
             buf=("left").getBytes();
             a.run();
-            Toast.makeText(MainActivity.this, "turning Left..", Toast.LENGTH_SHORT).show();
-        }
-        else
+           // Toast.makeText(MainActivity.this, "turning Left..", Toast.LENGTH_SHORT).show();
+     //   }
+     /*   else
         {
             left_btn_instance.setBackgroundColor(Color.GRAY);
             fwd_state = bck_state = left_state = right_state = true;//when stop is active enable all buttons
@@ -222,14 +317,15 @@ public class MainActivity extends AppCompatActivity
             a.run();
             Toast.makeText(MainActivity.this, "stopping..", Toast.LENGTH_SHORT).show();
         }
+        */
 
     }
     // when LED 3 BUTTON is pressed
     public void right(View v)
     {
 
-        if(right_state)
-        {
+      //  if(right_state)
+      //  {
             right_btn_instance.setBackgroundColor(Color.GREEN);
             left_btn_instance.setBackgroundColor(Color.GRAY);
             back_btn_instance.setBackgroundColor(Color.GRAY);
@@ -241,8 +337,8 @@ public class MainActivity extends AppCompatActivity
             buf=null;
             buf=("right").getBytes();
             a.run();
-            Toast.makeText(MainActivity.this, "turning right..", Toast.LENGTH_SHORT).show();
-        }
+          //  Toast.makeText(MainActivity.this, "turning right..", Toast.LENGTH_SHORT).show();
+      /*  }
         else
         {
             right_btn_instance.setBackgroundColor(Color.GRAY);
@@ -253,16 +349,11 @@ public class MainActivity extends AppCompatActivity
             buf=("stop").getBytes();
             a.run();
             Toast.makeText(MainActivity.this, "stopping..", Toast.LENGTH_SHORT).show();
-        }
+        }*/
 
     }
 
-    public static void turnOnOffWifi(Context context, boolean isTurnToOn)
-    {
-        wifiManager = (WifiManager) context
-                .getSystemService(Context.WIFI_SERVICE);
-        wifiManager.setWifiEnabled(isTurnToOn);
-    }
+
 
 
 //used to send data to esp module
