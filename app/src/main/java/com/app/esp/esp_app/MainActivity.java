@@ -15,6 +15,8 @@ import android.view.View;
 import android.view.animation.BounceInterpolator;
 import android.widget.Button;
 import android.widget.NumberPicker;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -26,13 +28,17 @@ import java.net.UnknownHostException;
 
 public class MainActivity extends AppCompatActivity
 {
-    Button right_btn_instance,left_btn_instance,fwd_btn_instance,back_btn_instance,wifi_btn_instance, speed_btn_instance, car_Mode_btn_Instance, safety_Btn_instance;
+    Button right_btn_instance,left_btn_instance,fwd_btn_instance,back_btn_instance,wifi_btn_instance, car_Mode_btn_Instance, safety_Btn_instance, stopBtnInstance;
+    SeekBar speedBar;
+    TextView speedText;
 
     Boolean fwd_state,bck_state,left_state,wifi_state,right_state,wifi_timeout;
 
-    int speed_level = 1;
+
     int car_mode = 0;
-    int safety_mode = 0;
+    int safety_mode = 1;
+    int speedVal=0;
+    int sysStatus = 0;
 
 
     static WifiManager wifiManager;
@@ -61,11 +67,21 @@ public class MainActivity extends AppCompatActivity
         left_btn_instance = (Button) findViewById(R.id.lft_btn);
         fwd_btn_instance = (Button) findViewById(R.id.fwd_btn);
         back_btn_instance = (Button) findViewById(R.id.bck_btn);
-        speed_btn_instance = (Button) findViewById(R.id.spd_btn);
+
         car_Mode_btn_Instance = (Button) findViewById(R.id.car_mode);
         safety_Btn_instance = (Button) findViewById(R.id.safetyBtn);
+        stopBtnInstance = (Button) findViewById(R.id.stop_btn);
+
+        speedBar = (SeekBar) findViewById(R.id.speedBar);
+        speedText = (TextView) findViewById(R.id.progressText);
+
+        speedText.setText("SPEED 0");
+
+        speed();
 
     }
+
+
 
     public static void turnOnOffWifi(Context context, boolean isTurnToOn)
     {
@@ -118,6 +134,19 @@ public class MainActivity extends AppCompatActivity
             }
 
 
+            sysStatus = (speedVal << 0xFFF)  | (safety_mode << 0xFF) | (car_mode << 0xF);
+
+            stopBtnInstance.setBackgroundColor(Color.RED);
+            fwd_btn_instance.setBackgroundColor(Color.GRAY);
+            right_btn_instance.setBackgroundColor(Color.GRAY);
+            left_btn_instance.setBackgroundColor(Color.GRAY);
+            back_btn_instance.setBackgroundColor(Color.GRAY);
+            bck_state = left_state = right_state = fwd_state = true;//when a button is pressed previous buttons function is overwritten, so enable these buttons again
+            Client a=new Client();
+            buf=null;
+
+
+            buf = ("CNCT"+sysStatus).getBytes();
         }
         else
         {
@@ -171,34 +200,46 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    public void speed(View v)
-    {
-        speed_level = speed_level+1;
-        if(speed_level > 3 )
-        {
-            speed_level = 1;
-        }
+    public void speed() {
+        speedBar.setOnSeekBarChangeListener(
+                new SeekBar.OnSeekBarChangeListener() {
 
-        Client a=new Client();
-        buf=null;
+                    Client a = new Client();
 
-        if(speed_level == 1) {
-            speed_btn_instance.setText("SPEED LOW");
-            speed_btn_instance.setBackgroundColor(Color.GRAY);
-            buf = ("speedL").getBytes();
-        }
-        else if(speed_level == 2) {
-            speed_btn_instance.setText("SPEED MID");
-            speed_btn_instance.setBackgroundColor(Color.GREEN);
-            buf = ("speedM").getBytes();
-        }
-        if(speed_level == 3) {
-            speed_btn_instance.setText("SPEED HI");
-            speed_btn_instance.setBackgroundColor(Color.RED);
-            buf = ("speedH").getBytes();
-        }
 
-        a.run();
+                    @Override
+                    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+                        buf = null;
+                        speedVal = progress;
+                        if(speedVal <10)
+                            buf = ("SPED0" + speedVal).getBytes();
+                        else
+                            buf = ("SPED" + speedVal).getBytes();
+                        speedText.setText("SPEED " + speedVal);
+                        a.run();
+
+                    }
+
+                    @Override
+                    public void onStartTrackingTouch(SeekBar seekBar) {
+
+                    }
+
+                    @Override
+                    public void onStopTrackingTouch(SeekBar seekBar) {
+                        buf = null;
+                        speedText.setText("SPEED " + speedVal);
+
+                        if(speedVal <10)
+                            buf = ("SPED0" + speedVal).getBytes();
+                        else
+                            buf = ("SPED" + speedVal).getBytes();
+                        a.run();
+
+                    }
+                }
+        );
     }
 
     public void safetyFn(View v)
@@ -212,15 +253,15 @@ public class MainActivity extends AppCompatActivity
         Client a=new Client();
         buf=null;
 
-        if(safety_mode == 0) {
+        if(safety_mode == 1) {
             safety_Btn_instance.setText("SAFETY ON");
             safety_Btn_instance.setBackgroundColor(Color.GREEN);
-            buf = ("safetyEnable").getBytes();
+            buf = ("SFTY01").getBytes();
         }
-        else if(safety_mode == 1) {
+        else if(safety_mode == 0) {
             safety_Btn_instance.setText("SAFETY OFF");
             safety_Btn_instance.setBackgroundColor(Color.RED);
-            buf = ("safetyDisable").getBytes();
+            buf = ("SFTY00").getBytes();
         }
 
         a.run();
@@ -239,12 +280,12 @@ public class MainActivity extends AppCompatActivity
         if(car_mode == 0) {
             car_Mode_btn_Instance.setText("MANUAL");
             car_Mode_btn_Instance.setBackgroundColor(Color.GRAY);
-            buf = ("manual").getBytes();
+            buf = ("MODE00").getBytes();
         }
         else if(car_mode == 1) {
             car_Mode_btn_Instance.setText("AUTO");
             car_Mode_btn_Instance.setBackgroundColor(Color.GREEN);
-            buf = ("automatic").getBytes();
+            buf = ("MODE01").getBytes();
         }
 
         a.run();
@@ -255,6 +296,7 @@ public class MainActivity extends AppCompatActivity
 
         if(fwd_state)
         {
+            stopBtnInstance.setBackgroundColor(Color.RED);
             fwd_btn_instance.setBackgroundColor(Color.GREEN);
             right_btn_instance.setBackgroundColor(Color.GRAY);
             left_btn_instance.setBackgroundColor(Color.GRAY);
@@ -265,23 +307,40 @@ public class MainActivity extends AppCompatActivity
             fwd_state=false;
             Client a=new Client();
             buf=null;
-            buf=("fwd").getBytes();
+            buf=("MOVE01").getBytes();
             a.run();
             Toast.makeText(MainActivity.this, "moving forward..", Toast.LENGTH_SHORT).show();
 
         }
         else
         {
+            stopBtnInstance.setBackgroundColor(Color.GREEN);
             fwd_btn_instance.setBackgroundColor(Color.GRAY);
 
             fwd_state = bck_state = left_state = right_state = true;//when stop is active enable all buttons
             Client a=new Client();//object of class client
             buf=null;
-            buf=("stop").getBytes();// value to be send to esp
+            buf=("MOVE00").getBytes();// value to be send to esp
             a.run(); //use run() in class client to send data
             Toast.makeText(MainActivity.this, "stopping..", Toast.LENGTH_SHORT).show();
         }
 
+
+    }
+    public void stopFn(View v)
+    {
+        stopBtnInstance.setBackgroundColor(Color.GREEN);
+        fwd_btn_instance.setBackgroundColor(Color.GRAY);
+        right_btn_instance.setBackgroundColor(Color.GRAY);
+        left_btn_instance.setBackgroundColor(Color.GRAY);
+        back_btn_instance.setBackgroundColor(Color.GRAY);
+        bck_state = left_state = right_state = fwd_state = true;//when a button is pressed previous buttons function is overwritten, so enable these buttons again
+
+        Client a=new Client();
+        buf=null;
+        buf=("MOVE00").getBytes();
+        a.run();
+        Toast.makeText(MainActivity.this, "Stopping..", Toast.LENGTH_SHORT).show();
 
     }
 	// when LED 3 BUTTON is pressed
@@ -290,6 +349,7 @@ public class MainActivity extends AppCompatActivity
 
         if(bck_state)
         {
+            stopBtnInstance.setBackgroundColor(Color.RED);
             back_btn_instance.setBackgroundColor(Color.GREEN);
             right_btn_instance.setBackgroundColor(Color.GRAY);
             left_btn_instance.setBackgroundColor(Color.GRAY);
@@ -299,18 +359,19 @@ public class MainActivity extends AppCompatActivity
             bck_state=false;
             Client a=new Client();
             buf=null;
-            buf=("back").getBytes();
+            buf=("MOVE02").getBytes();
             a.run();
             Toast.makeText(MainActivity.this, "reversing..", Toast.LENGTH_SHORT).show();
         }
         else
         {
+            stopBtnInstance.setBackgroundColor(Color.GREEN);
             back_btn_instance.setBackgroundColor(Color.GRAY);
 
             fwd_state = bck_state = left_state = right_state = true;//when stop is active enable all buttons
             Client a=new Client();
             buf=null;
-            buf=("stop").getBytes();
+            buf=("MOVE00").getBytes();
             a.run();
             Toast.makeText(MainActivity.this, "stopping..", Toast.LENGTH_SHORT).show();
         }
@@ -319,40 +380,44 @@ public class MainActivity extends AppCompatActivity
 // when LED 3 BUTTON is pressed
     public void left(View v)
     {
-       // if(left_state)
-      //  {
+        if(left_state)
+        {
+            stopBtnInstance.setBackgroundColor(Color.RED);
             left_btn_instance.setBackgroundColor(Color.GREEN);
             right_btn_instance.setBackgroundColor(Color.GRAY);
             back_btn_instance.setBackgroundColor(Color.GRAY);
             fwd_btn_instance.setBackgroundColor(Color.GRAY);
             bck_state = fwd_state = right_state = true;//when a button is pressed previous buttons function is overwritten, so enable these buttons again
 
-         //   left_state = false;
+            left_state = false;
             Client a=new Client();
             buf=null;
-            buf=("left").getBytes();
+            buf=("MOVE03").getBytes();
             a.run();
            // Toast.makeText(MainActivity.this, "turning Left..", Toast.LENGTH_SHORT).show();
-     //   }
-     /*   else
+        }
+        else
         {
+
+            stopBtnInstance.setBackgroundColor(Color.GREEN);
             left_btn_instance.setBackgroundColor(Color.GRAY);
             fwd_state = bck_state = left_state = right_state = true;//when stop is active enable all buttons
             Client a=new Client();
             buf=null;
-            buf=("stop").getBytes();
+            buf=("MOVE00").getBytes();
             a.run();
             Toast.makeText(MainActivity.this, "stopping..", Toast.LENGTH_SHORT).show();
         }
-        */
+
 
     }
     // when LED 3 BUTTON is pressed
     public void right(View v)
     {
 
-      //  if(right_state)
-      //  {
+        if(right_state)
+        {
+            stopBtnInstance.setBackgroundColor(Color.RED);
             right_btn_instance.setBackgroundColor(Color.GREEN);
             left_btn_instance.setBackgroundColor(Color.GRAY);
             back_btn_instance.setBackgroundColor(Color.GRAY);
@@ -362,21 +427,22 @@ public class MainActivity extends AppCompatActivity
             right_state=false;
             Client a=new Client();
             buf=null;
-            buf=("right").getBytes();
+            buf=("MOVE04").getBytes();
             a.run();
           //  Toast.makeText(MainActivity.this, "turning right..", Toast.LENGTH_SHORT).show();
-      /*  }
+        }
         else
         {
+            stopBtnInstance.setBackgroundColor(Color.GREEN);
             right_btn_instance.setBackgroundColor(Color.GRAY);
             fwd_state = bck_state = left_state = right_state = true;//when stop is active enable all buttons
             right_state=true;
             Client a=new Client();
             buf=null;
-            buf=("stop").getBytes();
+            buf=("MOVE00").getBytes();
             a.run();
             Toast.makeText(MainActivity.this, "stopping..", Toast.LENGTH_SHORT).show();
-        }*/
+        }
 
     }
 
